@@ -1,5 +1,5 @@
 /**
- *                          Block class
+ *  Block class
  *  The Block class is a main component into any Blockchain platform,
  *  it will store the data and act as a dataset for your application.
  *  The class will expose a method to validate the data... The body of
@@ -8,7 +8,6 @@
  *  All the exposed methods should return a Promise to allow all the methods
  *  run asynchronous.
  */
-
 const SHA256 = require("crypto-js/sha256");
 const hex2ascii = require("hex2ascii");
 

@@ -1,5 +1,5 @@
 /**
- *                          Blockchain Class
+ *  Blockchain Class
  *  The Blockchain class contain the basics functions to create your own private blockchain
  *  It uses libraries like `crypto-js` to create the hashes for each block and `bitcoinjs-message`
  *  to verify a message signature. The chain is stored in the array
@@ -33,9 +33,13 @@ class Blockchain {
    * Passing as a data `{data: 'Genesis Block'}`
    */
   async initializeChain() {
-    if (this.height === -1) {
-      let block = new BlockClass.Block({ data: "Genesis Block" });
-      await this._addBlock(block);
+    try {
+      if (this.height === -1) {
+        let block = new BlockClass.Block({ data: "Genesis Block" });
+        await this._addBlock(block);
+      }
+    } catch (e) {
+      console.log("An error occurred in initializing the Chain");
     }
   }
 
@@ -64,7 +68,7 @@ class Blockchain {
     let self = this;
     return new Promise(async (resolve, reject) => {
       try {
-        const newBlock = new BlockClass(block);
+        const newBlock = new BlockClass.Block(block);
         self.height++;
         newBlock.height = self.height;
         newBlock.previousBlockHash =
@@ -209,24 +213,44 @@ class Blockchain {
     let self = this;
     let errorLog = [];
     return new Promise(async (resolve, reject) => {
-        try {
-            self.chain.forEach((block, i)=> {
-                let errors = {};
-                errors.hasHashError = await block.validate();
-                if (i < self.chain.length - 1){
-                    errors.hasChainError = block.hash !== self.chain[i+1].hash;
-                }
-    
-                if (errors) {
-                    errors.blockHeight = block.height;
-                    errorLog.push(errors);
-                }
+      try {
+        const blockValidatePromises = [];
+        self.chain.forEach((block, i) => {
+          blockValidatePromises.push(
+            new Promise(async (resolve) => {
+              const validity = block.validate();
+              resolve({
+                blockHeight: block.height,
+                validity,
+                reason: "Block Hash Tampered",
+              });
+            })
+          );
+
+          if (
+            i < self.chain.length - 1 &&
+            block.hash !== self.chain[i + 1].hash
+          ) {
+            errorLog.push({
+              blockHeight: block.height + 1,
+              validity: false,
+              reason: "PreviousHash Tampered",
             });
-            resolve(errorLog)
-        } catch (e){
-            reject("An error occurred while validating the chain");
-        }
-        
+          }
+        });
+
+        const allBlockValidations = await Promise.all(blockValidatePromises);
+
+        allBlockValidations
+          .filter((blockValidity) => !blockValidity.validity)
+          .forEach((error) => {
+            errorLog.push(error);
+          });
+
+        resolve(errorLog);
+      } catch (e) {
+        reject("An error occurred while validating the chain");
+      }
     });
   }
 }
