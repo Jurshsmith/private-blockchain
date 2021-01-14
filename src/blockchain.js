@@ -121,7 +121,26 @@ class Blockchain {
    */
   submitStar(address, message, signature, star) {
     let self = this;
-    return new Promise(async (resolve, reject) => {});
+    return new Promise(async (resolve, reject) => {
+      try {
+        const initialTimeInMessage = parseInt(message.split(":")[1]);
+        const currentTime = parseInt(
+          new Date().getTime().toString().slice(0, -3)
+        );
+
+        if (currentTime - initialTimeInMessage <= 300000) {
+          if (bitcoinMessage.verify(message, address, signature)) {
+            const blockAdded = await self._addBlock({ address, star });
+            resolve(blockAdded);
+          }
+          reject("Invalid Signature");
+        }
+
+        reject("Message expired.There is a 5 mins expiration. Please retry!");
+      } catch (e) {
+        reject("An error occurred");
+      }
+    });
   }
 
   /**
@@ -132,7 +151,14 @@ class Blockchain {
    */
   getBlockByHash(hash) {
     let self = this;
-    return new Promise((resolve, reject) => {});
+    return new Promise((resolve, reject) => {
+      try {
+        const block = self.chain.filter((block) => block.hash === hash)[0];
+        resolve(block);
+      } catch (e) {
+        reject("An error occurred.");
+      }
+    });
   }
 
   /**
@@ -161,7 +187,16 @@ class Blockchain {
   getStarsByWalletAddress(address) {
     let self = this;
     let stars = [];
-    return new Promise((resolve, reject) => {});
+    return new Promise((resolve, reject) => {
+      try {
+        stars = self.chain
+          .filter((block) => block.getBData()?.address === address)
+          .map((block) => block.star);
+        resolve(stars);
+      } catch (e) {
+        reject("An error occurred.");
+      }
+    });
   }
 
   /**
@@ -173,7 +208,26 @@ class Blockchain {
   validateChain() {
     let self = this;
     let errorLog = [];
-    return new Promise(async (resolve, reject) => {});
+    return new Promise(async (resolve, reject) => {
+        try {
+            self.chain.forEach((block, i)=> {
+                let errors = {};
+                errors.hasHashError = await block.validate();
+                if (i < self.chain.length - 1){
+                    errors.hasChainError = block.hash !== self.chain[i+1].hash;
+                }
+    
+                if (errors) {
+                    errors.blockHeight = block.height;
+                    errorLog.push(errors);
+                }
+            });
+            resolve(errorLog)
+        } catch (e){
+            reject("An error occurred while validating the chain");
+        }
+        
+    });
   }
 }
 
