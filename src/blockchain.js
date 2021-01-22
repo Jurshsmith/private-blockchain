@@ -76,6 +76,7 @@ class Blockchain {
         newBlock.time = new Date().getTime().toString().slice(0, -3);
         newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
         self.chain.push(newBlock);
+        await this.validateChain();
         resolve(newBlock);
       } catch (e) {
         reject("An error occurred");
