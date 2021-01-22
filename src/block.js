@@ -42,9 +42,10 @@ class Block {
         // Recalculate the hash of the Block
         // Comparing if the hashes changed
         // Returning the Block is not valid
+        self.hash = null
 
         // Returning the Block is valid
-        let newBlockHash = SHA256(JSON.stringify(self));
+        let newBlockHash = SHA256(JSON.stringify(self)).toString()
         resolve(newBlockHash === currentBlockHash);
       } catch (e) {
         reject("An error occured");

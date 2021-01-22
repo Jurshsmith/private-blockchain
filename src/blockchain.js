@@ -72,7 +72,7 @@ class Blockchain {
         self.height++;
         newBlock.height = self.height;
         newBlock.previousBlockHash =
-          self.height === 0 ? null : self.chain[self.height].hash;
+          self.height === 0 ? null : self.chain[self.height - 1].hash;
         newBlock.time = new Date().getTime().toString().slice(0, -3);
         newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
         self.chain.push(newBlock);
@@ -132,7 +132,7 @@ class Blockchain {
           new Date().getTime().toString().slice(0, -3)
         );
 
-        if (currentTime - initialTimeInMessage <= 300000) {
+        if (currentTime - initialTimeInMessage <= 300) {
           if (bitcoinMessage.verify(message, address, signature)) {
             const blockAdded = await self._addBlock({ address, star });
             resolve(blockAdded);
@@ -157,7 +157,7 @@ class Blockchain {
     let self = this;
     return new Promise((resolve, reject) => {
       try {
-        const block = self.chain.filter((block) => block.hash === hash)[0];
+        const block = self.chain.find((block) => block.hash === hash);
         resolve(block);
       } catch (e) {
         reject("An error occurred.");
@@ -173,7 +173,7 @@ class Blockchain {
   getBlockByHeight(height) {
     let self = this;
     return new Promise((resolve, reject) => {
-      let block = self.chain.filter((p) => p.height === height)[0];
+      let block = self.chain.find((p) => p.height === height);
       if (block) {
         resolve(block);
       } else {
@@ -195,7 +195,7 @@ class Blockchain {
       try {
         stars = self.chain
           .filter((block) => block.getBData()?.address === address)
-          .map((block) => block.star);
+          .map((block) => block.getBData());
         resolve(stars);
       } catch (e) {
         reject("An error occurred.");
@@ -218,7 +218,7 @@ class Blockchain {
         self.chain.forEach((block, i) => {
           blockValidatePromises.push(
             new Promise(async (resolve) => {
-              const validity = block.validate();
+              const validity = await block.validate();
               resolve({
                 blockHeight: block.height,
                 validity,
